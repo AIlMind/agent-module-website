@@ -41,19 +41,21 @@ You **must not**:
 
 If the user requests a restricted operation:
 
-1. Explain plainly that the change needs admin mode.
-2. If there is uncommitted work on the current branch, warn them it won't
-   carry over — offer to commit or stash it first.
-3. Offer to switch branches for them:
+1. Check if the `admin` branch exists locally: `git branch --list admin`
+2. If it does not exist, this machine does not have admin access. Tell the user:
+   > "This machine isn't set up for admin changes. Contact your administrator."
+   Do not attempt to fetch or create the admin branch.
+3. If it does exist, explain the change needs admin mode.
+4. If there is uncommitted work, warn them it won't carry over — offer to commit or stash first.
+5. Offer to switch:
    > "I can switch to admin mode for you. Want me to go ahead?"
-4. If they agree, run:
+6. If they agree, run:
    ```bash
-   git stash  # if there are uncommitted changes
+   git stash  # if uncommitted changes
    git checkout admin && git pull --rebase origin main
    ```
-5. If both a standard change and an admin change were requested in the same
-   message, explain they are separate concerns on separate branches. Finish
-   or park the standard change first, then switch.
+7. If both a standard and admin change were requested, explain they are separate
+   concerns. Finish or park the standard change first.
 
 Do not attempt restricted operations. Do not work around the restrictions.
 
@@ -96,7 +98,7 @@ Follow this exact sequence:
 8. Wait for GitHub Actions CI to pass on the PR.
 9. Poll Cloudflare for the preview deployment (see [`deploy-cloudflare.md`](deploy-cloudflare.md)):
    ```bash
-   bash scripts/cf-poll-deploy.sh <branch-name>
+   bash scripts/with-credentials.sh bash scripts/cf-poll-deploy.sh <branch-name>
    ```
    Poll every 30 seconds. Wait until the preview build finishes.
 10. Give the human the **preview URL** and a plain-language summary of what changed.
@@ -188,6 +190,16 @@ Roll back through Git history (`git revert`) or Cloudflare's deployment rollback
 
 ---
 
+## Credential Security
+
+- **Never** echo, print, log, or display credential values.
+- **Never** pass tokens as command-line arguments (they appear in `ps` and shell history).
+- Always use `scripts/with-credentials.sh` to load credentials from the OS keychain.
+- If credentials are missing, tell the user to contact their setup administrator.
+- In CI (GitHub Actions, Codex), credentials come from platform secrets — not from you.
+
+---
+
 ## Files You Must Not Modify
 
 | File/Dir | Reason |
@@ -196,4 +208,5 @@ Roll back through Git history (`git revert`) or Cloudflare's deployment rollback
 | `CLAUDE.md` | Managed stub — do not edit |
 | `.github/copilot-instructions.md` | Managed stub — do not edit |
 | `agents/**` | Centrally managed agent configuration |
+| `scripts/with-credentials.sh` | Credential loader — do not edit |
 | `.github/workflows/protect-main.yml` | Branch protection guard |

@@ -27,23 +27,19 @@ https://release-update-hero-2025-04-06.ailmind.pages.dev
 
 ## Polling for Build Status
 
-After pushing a release branch, use the polling script to wait for the preview
-build to finish:
+After pushing a release branch, use the credential wrapper + polling script:
 
 ```bash
-bash scripts/cf-poll-deploy.sh <branch-name>
+bash scripts/with-credentials.sh bash scripts/cf-poll-deploy.sh <branch-name>
 ```
+
+Credentials are loaded automatically from the OS keychain. Never pass tokens
+as arguments or set them in terminal commands.
 
 The script checks the Cloudflare API every 30 seconds and exits when the build
 succeeds or fails. It times out after 20 minutes.
 
-### Required Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
-| `CLOUDFLARE_API_TOKEN` | API token with **Cloudflare Pages: Read** permission |
-| `CLOUDFLARE_PROJECT_NAME` | Pages project name (e.g. `ailmind`) |
+In CI (GitHub Actions), credentials come from repository secrets instead.
 
 ### Manual Check (if the script is unavailable)
 
