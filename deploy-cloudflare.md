@@ -9,7 +9,7 @@ Cloudflare Pages is connected to this GitHub repo and builds automatically:
 | `main` | **Production** deploy at the live URL |
 | Any other branch | **Preview** deploy at a branch-specific URL |
 
-No manual trigger is needed — pushing a branch is enough.
+No API tokens, CI pipelines, or manual triggers needed.
 
 ## Preview URL Pattern
 
@@ -25,37 +25,25 @@ Slashes become hyphens, so `release/update-hero-2025-04-06` becomes:
 https://release-update-hero-2025-04-06.ailmind.pages.dev
 ```
 
-## Polling for Build Status
+## Checking Build Status
 
-After pushing a release branch, use the credential wrapper + polling script:
-
-```bash
-bash scripts/with-credentials.sh bash scripts/cf-poll-deploy.sh <branch-name>
-```
-
-Credentials are loaded automatically from the OS keychain. Never pass tokens
-as arguments or set them in terminal commands.
-
-The script checks the Cloudflare API every 30 seconds and exits when the build
-succeeds or fails. It times out after 20 minutes.
-
-In CI (GitHub Actions), credentials come from repository secrets instead.
-
-### Manual Check (if the script is unavailable)
+After pushing, check if the preview is live by requesting the URL:
 
 ```bash
-curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$CLOUDFLARE_PROJECT_NAME/deployments" \
-  | jq '[.result[] | select(.deployment_trigger.metadata.branch == "BRANCH")] | .[0] | {status: .latest_stage.status, url: .url}'
+curl -s -o /dev/null -w "%{http_code}" https://<branch-slug>.<project>.pages.dev
 ```
 
-Replace `BRANCH` with the actual branch name.
+- **200**: Build succeeded, preview is live.
+- **404** or connection error: Still building — retry in 30 seconds.
 
-## After Human Approval
+Typical build time: 1–3 minutes for a static site.
 
-Once the user approves:
+You can also check the [Cloudflare dashboard](https://dash.cloudflare.com) → Pages → project → Deployments.
 
-1. Merge the PR to `main`.
-2. Cloudflare auto-deploys production from `main`.
-3. Poll again for `main` to confirm the production build succeeded.
-4. Confirm to the user that the live site is updated with the production URL.
+## After Admin Merges to Main
+
+Once an admin merges the PR on GitHub:
+
+1. Cloudflare auto-deploys production from `main`.
+2. The live site updates within 1–3 minutes.
+3. Verify by visiting the production URL.
